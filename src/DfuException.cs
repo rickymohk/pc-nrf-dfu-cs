@@ -77,10 +77,18 @@ namespace Nordic.nRF.DFU
         ERROR_MORE_BYTES_THAN_CHUNK_SIZE = 0x0033,
         ERROR_INVALID_PAYLOAD_TYPE = 0x0034,
 
-        // Error code for DfuTransportNoble
+        // Error code for DfuTransportNoble / DfuTransportBle
+        // Numbering mirrors noble-nrf-dfu's DfuError.js ErrorCode table.
         ERROR_CAN_NOT_DISCOVER_DFU_CONTROL = 0x0051,
         ERROR_TIMEOUT_FETCHING_CHARACTERISTICS = 0x0052,
         ERROR_CAN_NOT_SUBSCRIBE_CHANGES = 0x0053,
+        ERROR_TIMEOUT_JUMPING_TO_BOOTLOADER = 0x0054,
+        ERROR_TIMEOUT_SCANNING_NEW_PERIPHERAL = 0x0055,
+        ERROR_DISCONNECT_WHILE_WRITING = 0x0056,
+        // Not present upstream (JS write() failures reject with the raw platform
+        // error instead of a typed DfuError); added so BLE GATT write failures
+        // that are not a disconnect still surface a typed exception.
+        ERROR_GATT_WRITE_FAILED = 0x0057,
 
         // Error code for DfuTransportSerial(including slow and usb)
         ERROR_UNKNOWN_FIRMWARE_TYPE = 0x0071,
@@ -165,6 +173,10 @@ namespace Nordic.nRF.DFU
             {ErrorCode.ERROR_CAN_NOT_DISCOVER_DFU_CONTROL, "Could not discover DFU control and packet characteristics"},
             {ErrorCode.ERROR_TIMEOUT_FETCHING_CHARACTERISTICS, "Timeout while fetching characteristics from BLE peripheral"},
             {ErrorCode.ERROR_CAN_NOT_SUBSCRIBE_CHANGES, "Could not subscribe to changes of the control characteristics"},
+            {ErrorCode.ERROR_TIMEOUT_JUMPING_TO_BOOTLOADER, "Timeout while jumping to bootloader"},
+            {ErrorCode.ERROR_TIMEOUT_SCANNING_NEW_PERIPHERAL, "Timeout while scanning for new peripheral"},
+            {ErrorCode.ERROR_DISCONNECT_WHILE_WRITING, "Disconnect while writing to BLE transport"},
+            {ErrorCode.ERROR_GATT_WRITE_FAILED, "Write to a BLE GATT characteristic failed"},
             {ErrorCode.ERROR_UNKNOWN_FIRMWARE_TYPE, "Unkown firmware image type"},
             {ErrorCode.ERROR_UNABLE_FIND_PORT, "Unable to find port."},
             {ErrorCode.ERROR_NO_PORT_SPECIFIED, "No serial port name specified." }

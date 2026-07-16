@@ -118,6 +118,7 @@ namespace Nordic.nRF.DFU
             {
                 // We're done, we've been asked to perform an update
                 // that's 'beyond' our list
+                await _transport.Finish();
                 return;
             }
 
@@ -129,6 +130,7 @@ namespace Nordic.nRF.DFU
             var update = _updates.Updates[updateNumber];
             try
             {
+                await _transport.StartButtonless();
                 await _transport.SendInitPacket(update.InitPacket);
                 await _transport.SendFirmwareImage(update.FirmwareImage);
 
@@ -138,6 +140,14 @@ namespace Nordic.nRF.DFU
             {
                 // ... whelp, that didn't work...
                 System.Diagnostics.Debug.WriteLine($"Failed to perform DFU update ({updateNumber}): {ex.Message} - {ex.StackTrace}");
+
+                // Fire-and-forget cleanup, mirroring DfuOperation.js not awaiting
+                // finish() before rejecting; observe its exceptions so a cleanup
+                // failure doesn't surface as an unobserved task exception.
+                _ = _transport.Finish().ContinueWith(
+                    t => System.Diagnostics.Debug.WriteLine($"Transport cleanup after failure also failed: {t.Exception}"),
+                    TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously);
+
                 throw;
             }
         }

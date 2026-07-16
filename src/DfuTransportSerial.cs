@@ -70,7 +70,7 @@ namespace Nordic.nRF.DFU
         private bool _isReady;
         private bool _isGettingReady;
 
-        private DfuTransportSerial(short packetReceiveNotification)
+        private DfuTransportSerial(int packetReceiveNotification)
             : base(packetReceiveNotification)
         {
             _decoder = new SLIPDecoder(this.OnData);
@@ -79,13 +79,13 @@ namespace Nordic.nRF.DFU
             _isGettingReady = false;
         }
 
-        public DfuTransportSerial(SerialPort serialPort, short packetReceiveNotification = 16)
+        public DfuTransportSerial(SerialPort serialPort, int packetReceiveNotification = 16)
             : this(packetReceiveNotification)
         {
             _serialPort = serialPort;
         }
 
-        public DfuTransportSerial(string serialPortName, short packetReceiveNotification = 16)
+        public DfuTransportSerial(string serialPortName, int packetReceiveNotification = 16)
             : this(packetReceiveNotification)
         {
             _serialPortName = serialPortName;

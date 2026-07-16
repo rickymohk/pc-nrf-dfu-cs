@@ -7,6 +7,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Nordic.nRF.DFU", "src\Nordi
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Nordic.nRF.DFU.Console", "test\console\Nordic.nRF.DFU.Console.csproj", "{8D45038F-1BAC-45A9-B36B-E4DCD0EFB342}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nordic.nRF.DFU.BLE.Console", "test\Nordic.nRF.DFU.BLE.Console\Nordic.nRF.DFU.BLE.Console.csproj", "{DCC04913-7028-468E-A611-0BA515DA0DCB}"
+EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Extras", "Extras", "{45E6870C-EDE5-45F7-957A-C3D7BA101304}"
 	ProjectSection(SolutionItems) = preProject
 		.gitignore = .gitignore
@@ -31,6 +33,10 @@ Global
 		{8D45038F-1BAC-45A9-B36B-E4DCD0EFB342}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8D45038F-1BAC-45A9-B36B-E4DCD0EFB342}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8D45038F-1BAC-45A9-B36B-E4DCD0EFB342}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DCC04913-7028-468E-A611-0BA515DA0DCB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DCC04913-7028-468E-A611-0BA515DA0DCB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DCC04913-7028-468E-A611-0BA515DA0DCB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DCC04913-7028-468E-A611-0BA515DA0DCB}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

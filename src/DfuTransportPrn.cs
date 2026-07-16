@@ -68,9 +68,15 @@ namespace Nordic.nRF.DFU
         public int? Mtu { get; protected set; }
 
         // The constructor takes the value for the PRN interval. It should be
-        // provided by the concrete subclasses.
-        protected DfuTransportPrn(short packetReceiveNotification = 16) : base()
+        // provided by the concrete subclasses. The PRN is a 16-bit unsigned
+        // value on the wire, so values above 0xFFFF are rejected.
+        protected DfuTransportPrn(int packetReceiveNotification = 16) : base()
         {
+            if (packetReceiveNotification > 0xFFFF)
+            {
+                throw new DfuException(ErrorCode.ERROR_CAN_NOT_USE_HIGHER_PRN);
+            }
+
             _prn = packetReceiveNotification;
 
             // Store *one* message waitig to be read()

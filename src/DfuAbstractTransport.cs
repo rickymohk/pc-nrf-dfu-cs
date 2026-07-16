@@ -48,8 +48,43 @@ using System.Threading.Tasks;
 
 namespace Nordic.nRF.DFU
 {
+    // Mirrors the {sent, total} payload of DfuAbstractTransport.js's "progress" EventEmitter event.
+    public class DfuProgressEventArgs : EventArgs
+    {
+        public DfuProgressEventArgs(uint sent, uint total)
+        {
+            Sent = sent;
+            Total = total;
+        }
+
+        public uint Sent { get; }
+        public uint Total { get; }
+    }
+
     public abstract class DfuAbstractTransport
     {
+        // Fired after a payload chunk has been written and executed, but only for
+        // chunks that are not the last one for the current payload type (i.e. it
+        // does not fire when a payload type finishes).
+        public event EventHandler<DfuProgressEventArgs> Progress;
+
+        // Cleans up the transport once a DFU procedure has finished, successfully
+        // or not (e.g. disconnecting a BLE peripheral). Default is a no-op so
+        // transports that don't need cleanup (e.g. serial) don't need an override.
+        // Uses Task.FromResult rather than Task.CompletedTask, which isn't
+        // available on net45.
+        public virtual Task Finish()
+        {
+            return Task.FromResult(0);
+        }
+
+        // Jumps a device running in application mode (with "buttonless" BLE DFU
+        // support) into bootloader mode. Default is a no-op so transports that
+        // don't support/require this (e.g. serial) don't need an override.
+        public virtual Task StartButtonless()
+        {
+            return Task.FromResult(0);
+        }
 
         // Restarts the DFU procedure by sending a create command of
         // type 1 (init payload / "command object").
@@ -143,11 +178,20 @@ namespace Nordic.nRF.DFU
                 // Note that these are CRC mismatches at a chunk level, not at a
                 // transport level. Individual transports might decide to roll back
                 // parts of a chunk (re-creating it) on PRN CRC failures.
-                // But here it means that there is a CRC mismatch while trying to
-                // continue an interrupted DFU, and the behaviour in this case is to panic.
-                System.Diagnostics.Debug.WriteLine($"CRC mismatch: expected/actual 0x{crc:X}/0x{crcSoFar:X}");
+                // This means there is a CRC mismatch while trying to continue an
+                // interrupted DFU: recreate the chunk containing (or preceding)
+                // the reported offset and resume from there, rather than aborting.
+                System.Diagnostics.Debug.WriteLine($"CRC mismatch: expected/actual 0x{crc:X}/0x{crcSoFar:X}. Recreating the current chunk and resuming.");
 
-                throw new DfuException(ErrorCode.ERROR_PRE_DFU_INTERRUPTED);
+                var alignedStart = ((long)offset / chunkSize) * chunkSize;
+                var chunkStartSigned = alignedStart - (offset % chunkSize == 0 ? chunkSize : 0);
+                var recoveryStart = (uint)Math.Max(0, chunkStartSigned);
+                var recoveryLen = (uint)Math.Min(bytes.Length, chunkSize);
+                var recoveryEnd = (uint)Math.Min(bytes.Length, recoveryStart + chunkSize);
+
+                await this.CreateObject(type, recoveryLen);
+                await this.SendAndExecutePayloadChunk(type, bytes, recoveryStart, recoveryEnd, chunkSize);
+                return;
             }
 
             var end = (uint)Math.Min(bytes.Length, chunkSize);
@@ -177,6 +221,7 @@ namespace Nordic.nRF.DFU
             // Send next chunk
             System.Diagnostics.Debug.WriteLine($"Sent {end} bytes, not finished yet (until {bytes.Length})");
             var nextEnd = (uint)Math.Min(bytes.Length, end + chunkSize);
+            Progress?.Invoke(this, new DfuProgressEventArgs(end, (uint)bytes.Length));
             await this.CreateObject(type, nextEnd - end);
             await this.SendAndExecutePayloadChunk(
                     type, bytes, end, nextEnd, chunkSize,
