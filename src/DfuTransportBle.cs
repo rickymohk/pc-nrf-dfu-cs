@@ -300,6 +300,21 @@ namespace Nordic.nRF.DFU
         {
             async Task DiscoverAsync()
             {
+                // StartButtonless() runs its own discovery pass up front to look for the
+                // buttonless characteristic; when the target is already in bootloader mode (no
+                // buttonless characteristic, e.g. a DFU-rescue target), it returns without ever
+                // swapping in a new device via AttachDevice() - so the DFU service handle opened
+                // by that pass is still live when Ready()/InitializeAsync() calls this a second
+                // time on the same still-attached device. Windows only allows one open handle per
+                // GATT service per process without shared access, so re-opening it here without
+                // disposing the previous handle first fails with AccessDenied. Disposing it
+                // up front makes repeated discovery on the same device idempotent.
+                _dfuService?.Dispose();
+                _dfuService = null;
+                _controlPointCharacteristic = null;
+                _packetCharacteristic = null;
+                _buttonlessCharacteristic = null;
+
                 // Right after a (re)connection, the very first GATT operation
                 // commonly comes back with a non-success status (typically
                 // Unreachable) while the link is still stabilizing, rather than
