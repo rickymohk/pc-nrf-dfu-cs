@@ -44,6 +44,7 @@ namespace Nordic.nRF.DFU
         private readonly object _readyLock = new object();
 
         private BluetoothLEDevice _device;
+        private GattSession _gattSession;
         private GattDeviceService _dfuService;
         private GattCharacteristic _controlPointCharacteristic;
         private GattCharacteristic _packetCharacteristic;
@@ -86,6 +87,13 @@ namespace Nordic.nRF.DFU
             if (_device != null)
             {
                 _device.ConnectionStatusChanged -= Device_ConnectionStatusChanged;
+            }
+
+            if (_gattSession != null)
+            {
+                _gattSession.MaxPduSizeChanged -= GattSession_MaxPduSizeChanged;
+                _gattSession.Dispose();
+                _gattSession = null;
             }
 
             _device = device ?? throw new ArgumentNullException(nameof(device));
@@ -207,6 +215,8 @@ namespace Nordic.nRF.DFU
                     $"Found the DFU service but not the expected characteristics (control point found: {_controlPointCharacteristic != null}, packet found: {_packetCharacteristic != null}).");
             }
 
+            await SetupMtuTrackingAsync();
+
             System.Diagnostics.Debug.WriteLine("Subscribing to control point notifications...");
             var notifyStatus = await WriteCccdWithTimeoutAsync(_controlPointCharacteristic);
 
@@ -229,6 +239,61 @@ namespace Nordic.nRF.DFU
             var readResult = await Read();
             AssertPacket(0x02, 0)(readResult);
             System.Diagnostics.Debug.WriteLine("Ready.");
+        }
+
+        // Tracks the connection's actual negotiated ATT MTU via GattSession,
+        // to use a larger Mtu than the conservative 20-byte default when the
+        // link supports it (Windows negotiates this automatically; there is
+        // no API to request a specific size, only to observe the outcome).
+        // This is a speed optimization, not required for correctness, so any
+        // failure here (including running on a Windows version older than
+        // the 1803 GattSession.MaxPduSize requires) just falls back to the
+        // default MTU rather than failing the DFU procedure.
+        private async Task SetupMtuTrackingAsync()
+        {
+            try
+            {
+                var bluetoothDeviceId = BluetoothDeviceId.FromId(_device.DeviceId);
+                var sessionTask = GattSession.FromDeviceIdAsync(bluetoothDeviceId).AsTask();
+                var completed = await Task.WhenAny(sessionTask, Task.Delay(_operationTimeoutMillis));
+                if (completed != sessionTask)
+                {
+                    System.Diagnostics.Debug.WriteLine("Timed out setting up GattSession for MTU tracking; using default MTU.");
+                    return;
+                }
+
+                _gattSession = await sessionTask;
+                _gattSession.MaintainConnection = true;
+                _gattSession.MaxPduSizeChanged += GattSession_MaxPduSizeChanged;
+                UpdateMtuFromPduSize(_gattSession.MaxPduSize);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Could not set up GattSession for MTU tracking; using default MTU. {ex}");
+            }
+        }
+
+        private void GattSession_MaxPduSizeChanged(GattSession sender, object args)
+        {
+            UpdateMtuFromPduSize(sender.MaxPduSize);
+        }
+
+        // Usable ATT payload is the negotiated PDU size minus the 3-byte ATT
+        // opcode+handle header, rounded down to a multiple of 4 - matching
+        // DfuTransportSerial's MTU rounding, which guards against unaligned
+        // flash writes on the target (an nRF-wide constraint, not specific
+        // to the serial transport).
+        private void UpdateMtuFromPduSize(int maxPduSize)
+        {
+            var usable = maxPduSize - 3;
+            usable -= usable % 4;
+            if (usable < 20)
+            {
+                usable = 20;
+            }
+
+            System.Diagnostics.Debug.WriteLine($"BLE MTU update: PDU size {maxPduSize}, usable payload {usable} bytes.");
+            Mtu = usable;
         }
 
         private async Task DiscoverCharacteristicsAsync()
@@ -551,6 +616,20 @@ namespace Nordic.nRF.DFU
 
         private void Device_ConnectionStatusChanged(BluetoothLEDevice sender, object args)
         {
+            if (sender != _device)
+            {
+                // Stale event from a device this transport has since replaced.
+                // WinRT event de-registration isn't atomic with in-flight event
+                // delivery: the pre-buttonless-jump device's own disconnect
+                // notification can still arrive after AttachDevice() has
+                // already switched _device to the reconnected peripheral and
+                // (re-)discovered its characteristics. Without this guard,
+                // that stale event nulls out the new device's characteristics
+                // out from under InitializeAsync/WriteCommand/WriteData.
+                System.Diagnostics.Debug.WriteLine("Ignoring ConnectionStatusChanged from a device that is no longer attached.");
+                return;
+            }
+
             if (sender.ConnectionStatus != BluetoothConnectionStatus.Disconnected)
             {
                 return;
@@ -595,6 +674,12 @@ namespace Nordic.nRF.DFU
             if (_controlPointCharacteristic != null)
             {
                 _controlPointCharacteristic.ValueChanged -= ControlPointCharacteristic_ValueChanged;
+            }
+
+            if (_gattSession != null)
+            {
+                _gattSession.MaxPduSizeChanged -= GattSession_MaxPduSizeChanged;
+                _gattSession.Dispose();
             }
 
             _dfuService?.Dispose();
