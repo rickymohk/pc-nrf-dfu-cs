@@ -37,9 +37,9 @@
       },
       "Newtonsoft.Json": {
         "type": "Direct",
-        "requested": "[12.0.2, )",
-        "resolved": "12.0.2",
-        "contentHash": "rTK0s2EKlfHsQsH6Yx2smvcTCeyoDNgCW7FEYyV01drPlh2T243PR2DiDXqtC5N4GDm4Ma/lkxfW5a/4793vbA=="
+        "requested": "[13.0.4, )",
+        "resolved": "13.0.4",
+        "contentHash": "pdgNNMai3zv51W5aq268sujXUyx7SNdE2bj1wZcWjAQrKMFZV260lbqYop1d2GM67JI1huLRwxo9ZqnfF/lC6A=="
       },
       "System.IO.Compression.ZipFile": {
         "type": "Direct",
@@ -416,9 +416,9 @@
       },
       "Newtonsoft.Json": {
         "type": "Direct",
-        "requested": "[12.0.2, )",
-        "resolved": "12.0.2",
-        "contentHash": "rTK0s2EKlfHsQsH6Yx2smvcTCeyoDNgCW7FEYyV01drPlh2T243PR2DiDXqtC5N4GDm4Ma/lkxfW5a/4793vbA=="
+        "requested": "[13.0.4, )",
+        "resolved": "13.0.4",
+        "contentHash": "pdgNNMai3zv51W5aq268sujXUyx7SNdE2bj1wZcWjAQrKMFZV260lbqYop1d2GM67JI1huLRwxo9ZqnfF/lC6A=="
       },
       "System.IO.Compression.ZipFile": {
         "type": "Direct",
@@ -757,9 +757,9 @@
       },
       "Newtonsoft.Json": {
         "type": "Direct",
-        "requested": "[12.0.2, )",
-        "resolved": "12.0.2",
-        "contentHash": "rTK0s2EKlfHsQsH6Yx2smvcTCeyoDNgCW7FEYyV01drPlh2T243PR2DiDXqtC5N4GDm4Ma/lkxfW5a/4793vbA=="
+        "requested": "[13.0.4, )",
+        "resolved": "13.0.4",
+        "contentHash": "pdgNNMai3zv51W5aq268sujXUyx7SNdE2bj1wZcWjAQrKMFZV260lbqYop1d2GM67JI1huLRwxo9ZqnfF/lC6A=="
       },
       "Microsoft.NETFramework.ReferenceAssemblies.net45": {
         "type": "Transitive",
@@ -785,9 +785,9 @@
       },
       "Newtonsoft.Json": {
         "type": "Direct",
-        "requested": "[12.0.2, )",
-        "resolved": "12.0.2",
-        "contentHash": "rTK0s2EKlfHsQsH6Yx2smvcTCeyoDNgCW7FEYyV01drPlh2T243PR2DiDXqtC5N4GDm4Ma/lkxfW5a/4793vbA=="
+        "requested": "[13.0.4, )",
+        "resolved": "13.0.4",
+        "contentHash": "pdgNNMai3zv51W5aq268sujXUyx7SNdE2bj1wZcWjAQrKMFZV260lbqYop1d2GM67JI1huLRwxo9ZqnfF/lC6A=="
       },
       "System.IO.Compression.ZipFile": {
         "type": "Direct",
@@ -826,9 +826,9 @@
       },
       "Newtonsoft.Json": {
         "type": "Direct",
-        "requested": "[12.0.2, )",
-        "resolved": "12.0.2",
-        "contentHash": "rTK0s2EKlfHsQsH6Yx2smvcTCeyoDNgCW7FEYyV01drPlh2T243PR2DiDXqtC5N4GDm4Ma/lkxfW5a/4793vbA=="
+        "requested": "[13.0.4, )",
+        "resolved": "13.0.4",
+        "contentHash": "pdgNNMai3zv51W5aq268sujXUyx7SNdE2bj1wZcWjAQrKMFZV260lbqYop1d2GM67JI1huLRwxo9ZqnfF/lC6A=="
       },
       "System.IO.Compression.ZipFile": {
         "type": "Direct",
@@ -889,9 +889,9 @@
       },
       "Newtonsoft.Json": {
         "type": "Direct",
-        "requested": "[12.0.2, )",
-        "resolved": "12.0.2",
-        "contentHash": "rTK0s2EKlfHsQsH6Yx2smvcTCeyoDNgCW7FEYyV01drPlh2T243PR2DiDXqtC5N4GDm4Ma/lkxfW5a/4793vbA=="
+        "requested": "[13.0.4, )",
+        "resolved": "13.0.4",
+        "contentHash": "pdgNNMai3zv51W5aq268sujXUyx7SNdE2bj1wZcWjAQrKMFZV260lbqYop1d2GM67JI1huLRwxo9ZqnfF/lC6A=="
       },
       "System.IO.Compression.ZipFile": {
         "type": "Direct",

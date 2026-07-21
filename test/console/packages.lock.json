@@ -87,8 +87,8 @@
       },
       "Newtonsoft.Json": {
         "type": "Transitive",
-        "resolved": "12.0.2",
-        "contentHash": "rTK0s2EKlfHsQsH6Yx2smvcTCeyoDNgCW7FEYyV01drPlh2T243PR2DiDXqtC5N4GDm4Ma/lkxfW5a/4793vbA=="
+        "resolved": "13.0.4",
+        "contentHash": "pdgNNMai3zv51W5aq268sujXUyx7SNdE2bj1wZcWjAQrKMFZV260lbqYop1d2GM67JI1huLRwxo9ZqnfF/lC6A=="
       },
       "runtime.linux-arm.runtime.native.System.IO.Ports": {
         "type": "Transitive",
@@ -406,7 +406,7 @@
           "Google.Protobuf": "[3.10.1, )",
           "Microsoft.NETCore.Platforms": "[3.0.0, )",
           "Microsoft.NETCore.Targets": "[3.0.0, )",
-          "Newtonsoft.Json": "[12.0.2, )",
+          "Newtonsoft.Json": "[13.0.4, )",
           "System.IO.Compression.ZipFile": "[4.3.0, )",
           "System.IO.Ports": "[4.6.0, )"
         }
@@ -457,8 +457,8 @@
       },
       "Newtonsoft.Json": {
         "type": "Transitive",
-        "resolved": "12.0.2",
-        "contentHash": "rTK0s2EKlfHsQsH6Yx2smvcTCeyoDNgCW7FEYyV01drPlh2T243PR2DiDXqtC5N4GDm4Ma/lkxfW5a/4793vbA=="
+        "resolved": "13.0.4",
+        "contentHash": "pdgNNMai3zv51W5aq268sujXUyx7SNdE2bj1wZcWjAQrKMFZV260lbqYop1d2GM67JI1huLRwxo9ZqnfF/lC6A=="
       },
       "runtime.linux-arm.runtime.native.System.IO.Ports": {
         "type": "Transitive",
@@ -773,7 +773,7 @@
           "Google.Protobuf": "[3.10.1, )",
           "Microsoft.NETCore.Platforms": "[3.1.3, )",
           "Microsoft.NETCore.Targets": "[3.1.0, )",
-          "Newtonsoft.Json": "[12.0.2, )",
+          "Newtonsoft.Json": "[13.0.4, )",
           "System.IO.Compression.ZipFile": "[4.3.0, )",
           "System.IO.Ports": "[4.6.0, )"
         }
