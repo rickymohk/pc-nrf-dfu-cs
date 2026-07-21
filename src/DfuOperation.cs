@@ -122,15 +122,22 @@ namespace Nordic.nRF.DFU
                 return;
             }
 
-            if (forceful)
-            {
-                await _transport.Restart();
-            }
-
             var update = _updates.Updates[updateNumber];
             try
             {
+                // StartButtonless() must run first: for a device still running its
+                // application (not yet in the bootloader), the control/packet
+                // characteristics Restart() depends on (via Ready()) don't exist yet -
+                // only the buttonless characteristic does. StartButtonless() is what
+                // triggers the jump into the bootloader and reconnects to the
+                // characteristics Restart() needs.
                 await _transport.StartButtonless();
+
+                if (forceful)
+                {
+                    await _transport.Restart();
+                }
+
                 await _transport.SendInitPacket(update.InitPacket);
                 await _transport.SendFirmwareImage(update.FirmwareImage);
 
