@@ -12,6 +12,7 @@
 using System;
 using System.Runtime.InteropServices.WindowsRuntime;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Windows.Devices.Bluetooth;
 using Windows.Devices.Bluetooth.Advertisement;
@@ -65,7 +66,12 @@ namespace Nordic.nRF.DFU
         // DFU requests, waiting for disconnect, and scanning for the
         // re-advertising peripheral - mirrors DfuTransportNoble's
         // operationTimeoutMillis constructor parameter.
-        public DfuTransportBle(BluetoothLEDevice device, string dfuAdvName = null, int packetReceiveNotification = 16, int operationTimeoutMillis = 5000)
+        // 5000ms (the original default) is too tight for the very first GATT operation against
+        // a freshly-resolved BluetoothLEDevice: Windows has to actually establish the LE
+        // connection at that point, and DiscoverCharacteristicsAsync's own retry loop (up to 3
+        // attempts per phase, 2 phases, 500ms between attempts) can legitimately need more than
+        // 5s end to end even when nothing is actually wrong.
+        public DfuTransportBle(BluetoothLEDevice device, string dfuAdvName = null, int packetReceiveNotification = 16, int operationTimeoutMillis = 20000)
             : base(packetReceiveNotification)
         {
             _dfuAdvName = dfuAdvName;
@@ -298,7 +304,7 @@ namespace Nordic.nRF.DFU
 
         private async Task DiscoverCharacteristicsAsync()
         {
-            async Task DiscoverAsync()
+            async Task DiscoverAsync(CancellationToken cancellationToken)
             {
                 // StartButtonless() runs its own discovery pass up front to look for the
                 // buttonless characteristic; when the target is already in bootloader mode (no
@@ -325,11 +331,12 @@ namespace Nordic.nRF.DFU
                     GattDeviceServicesResult result = null;
                     for (var attempt = 1; attempt <= 3; attempt++)
                     {
+                        cancellationToken.ThrowIfCancellationRequested();
                         try
                         {
-                            result = await _device.GetGattServicesForUuidAsync(DfuServiceUuid, BluetoothCacheMode.Uncached).AsTask();
+                            result = await _device.GetGattServicesForUuidAsync(DfuServiceUuid, BluetoothCacheMode.Uncached).AsTask(cancellationToken);
                         }
-                        catch (Exception ex)
+                        catch (Exception ex) when (!(ex is OperationCanceledException))
                         {
                             System.Diagnostics.Debug.WriteLine($"Error discovering service (attempt {attempt}/3): {ex}");
                             result = null;
@@ -341,7 +348,7 @@ namespace Nordic.nRF.DFU
                         }
 
                         System.Diagnostics.Debug.WriteLine($"Service discovery attempt {attempt}/3 came back as {(result == null ? "an exception" : $"{result.Status}, {result.Services.Count} service(s)")}; retrying.");
-                        await Task.Delay(500);
+                        await Task.Delay(500, cancellationToken);
                     }
 
                     throw new DfuException(ErrorCode.ERROR_CAN_NOT_DISCOVER_DFU_CONTROL,
@@ -353,11 +360,12 @@ namespace Nordic.nRF.DFU
                     GattCharacteristicsResult result = null;
                     for (var attempt = 1; attempt <= 3; attempt++)
                     {
+                        cancellationToken.ThrowIfCancellationRequested();
                         try
                         {
-                            result = await service.GetCharacteristicsAsync(BluetoothCacheMode.Uncached).AsTask();
+                            result = await service.GetCharacteristicsAsync(BluetoothCacheMode.Uncached).AsTask(cancellationToken);
                         }
-                        catch (Exception ex)
+                        catch (Exception ex) when (!(ex is OperationCanceledException))
                         {
                             System.Diagnostics.Debug.WriteLine($"Error discovering characteristics (attempt {attempt}/3): {ex}");
                             result = null;
@@ -369,7 +377,7 @@ namespace Nordic.nRF.DFU
                         }
 
                         System.Diagnostics.Debug.WriteLine($"Characteristic discovery attempt {attempt}/3 came back as {(result == null ? "an exception" : result.Status.ToString())}; retrying.");
-                        await Task.Delay(500);
+                        await Task.Delay(500, cancellationToken);
                     }
 
                     throw new DfuException(ErrorCode.ERROR_CAN_NOT_DISCOVER_DFU_CONTROL,
@@ -400,15 +408,23 @@ namespace Nordic.nRF.DFU
                 System.Diagnostics.Debug.WriteLine($"Discovered characteristics: control point={_controlPointCharacteristic != null}, packet={_packetCharacteristic != null}, buttonless={_buttonlessCharacteristic != null}");
             }
 
-            var discoverTask = DiscoverAsync();
-            var timeoutTask = Task.Delay(_operationTimeoutMillis);
-            var completed = await Task.WhenAny(discoverTask, timeoutTask);
-            if (completed == timeoutTask)
+            // Uses a CancellationToken rather than racing DiscoverAsync() against a
+            // Task.Delay(...) timeout: a plain race leaves DiscoverAsync() running in the
+            // background after the timeout wins, and it goes on to touch _dfuService/_device
+            // after the caller's failure handling has already disposed them (ObjectDisposedException
+            // instead of a clean timeout). Cancelling the underlying WinRT calls actually stops
+            // the pending GATT operation instead of abandoning it.
+            using (var cts = new CancellationTokenSource(_operationTimeoutMillis))
             {
-                throw new DfuException(ErrorCode.ERROR_TIMEOUT_FETCHING_CHARACTERISTICS);
+                try
+                {
+                    await DiscoverAsync(cts.Token);
+                }
+                catch (OperationCanceledException) when (cts.IsCancellationRequested)
+                {
+                    throw new DfuException(ErrorCode.ERROR_TIMEOUT_FETCHING_CHARACTERISTICS);
+                }
             }
-
-            await discoverTask; // Propagate exceptions, if any
         }
 
         // Picks the CCCD value matching what the characteristic actually
