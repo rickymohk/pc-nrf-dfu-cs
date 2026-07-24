@@ -40,6 +40,17 @@ namespace Nordic.nRF.DFU
 
         private static readonly Random _random = new Random();
 
+        // How long to wait between initialization attempts after a disconnect - mirrors the
+        // pacing of DiscoverCharacteristicsAsync's own retry loop below.
+        private const int InitRetryDelayMillis = 500;
+
+        // Right after a buttonless-DFU bootloader jump, the freshly-reconnected link can keep
+        // disconnecting/reconnecting for a couple of seconds - Windows papers over this for
+        // service/characteristic discovery via its own retry loop, but the same instability can
+        // still kill the Set PRN write that follows discovery. Retrying the whole handshake (not
+        // just waiting longer before the first write) is what actually rides this out.
+        private const int MaxInitializeAttempts = 3;
+
         private readonly string _dfuAdvName;
         private readonly int _operationTimeoutMillis;
         private readonly object _readyLock = new object();
@@ -72,7 +83,7 @@ namespace Nordic.nRF.DFU
         // attempts per phase, 2 phases, 500ms between attempts) can legitimately need more than
         // 5s end to end even when nothing is actually wrong.
         public DfuTransportBle(BluetoothLEDevice device, string dfuAdvName = null, int packetReceiveNotification = 16, int operationTimeoutMillis = 20000)
-            : base(packetReceiveNotification)
+            : base(packetReceiveNotification, operationTimeoutMillis)
         {
             _dfuAdvName = dfuAdvName;
             _operationTimeoutMillis = operationTimeoutMillis;
@@ -212,6 +223,23 @@ namespace Nordic.nRF.DFU
         }
 
         private async Task InitializeAsync()
+        {
+            for (var attempt = 1; ; attempt++)
+            {
+                try
+                {
+                    await InitializeOnceAsync();
+                    return;
+                }
+                catch (DfuException ex) when (ex.Code == ErrorCode.ERROR_DISCONNECT_WHILE_WRITING && attempt < MaxInitializeAttempts)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Disconnected during initialization (attempt {attempt}/{MaxInitializeAttempts}); retrying.");
+                    await Task.Delay(InitRetryDelayMillis);
+                }
+            }
+        }
+
+        private async Task InitializeOnceAsync()
         {
             await DiscoverCharacteristicsAsync();
 
