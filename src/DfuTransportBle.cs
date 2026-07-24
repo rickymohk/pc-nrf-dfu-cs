@@ -670,7 +670,21 @@ namespace Nordic.nRF.DFU
         {
             var bytes = args.CharacteristicValue.ToArray();
             System.Diagnostics.Debug.WriteLine($"BLE notify <-- {BitConverter.ToString(bytes)}");
-            await OnData(bytes);
+
+            // This is invoked directly by WinRT as an async void callback - nothing above this
+            // method can catch an exception from it, so letting one escape (e.g. OnData's
+            // ERROR_RECEIVE_TWO_MESSAGES on an unexpected duplicate/overlapping notification)
+            // crashes the whole process instead of just failing this DFU attempt. Whichever
+            // Read() is pending for this notification still fails on its own timeout, which
+            // surfaces as a normal, catchable DfuException instead.
+            try
+            {
+                await OnData(bytes);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error handling control point notification: {ex}");
+            }
         }
 
         private void Device_ConnectionStatusChanged(BluetoothLEDevice sender, object args)
