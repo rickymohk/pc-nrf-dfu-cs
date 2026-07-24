@@ -62,6 +62,7 @@ namespace Nordic.nRF.DFU
     public abstract class DfuTransportPrn : DfuAbstractTransport
     {
         protected readonly int _prn;
+        private readonly int _readTimeoutMillis;
         private Tuple<byte, byte[]> _lastReceivedPacket;
         private ManualResetEvent _waitingForPacket;
 
@@ -70,7 +71,12 @@ namespace Nordic.nRF.DFU
         // The constructor takes the value for the PRN interval. It should be
         // provided by the concrete subclasses. The PRN is a 16-bit unsigned
         // value on the wire, so values above 0xFFFF are rejected.
-        protected DfuTransportPrn(int packetReceiveNotification = 16) : base()
+        // readTimeoutMillis: how long Read() waits for a protocol response (e.g. the Execute
+        // ack after the target flashes a chunk) before giving up. Defaults to the original 5000ms,
+        // which is fine for serial DFU; BLE DFU overrides this to match its own, already-larger
+        // operation timeout, since ExecuteObject on a large chunk can legitimately take longer
+        // than 5s to get a response over BLE.
+        protected DfuTransportPrn(int packetReceiveNotification = 16, int readTimeoutMillis = 5000) : base()
         {
             if (packetReceiveNotification > 0xFFFF)
             {
@@ -78,6 +84,7 @@ namespace Nordic.nRF.DFU
             }
 
             _prn = packetReceiveNotification;
+            _readTimeoutMillis = readTimeoutMillis;
 
             // Store *one* message waitig to be read()
             _lastReceivedPacket = null;
@@ -134,12 +141,12 @@ namespace Nordic.nRF.DFU
             }
 
             // Store the callback so it can be called as soon as the wire packet is
-            // ready. Add a 5sec timeout while we're at it; remove that timeout
+            // ready. Add a timeout while we're at it; remove that timeout
             // when data is actually received.
             try
             {
                 this._waitingForPacket = new ManualResetEvent(false);
-                if (!this._waitingForPacket.WaitOne(5000))
+                if (!this._waitingForPacket.WaitOne(_readTimeoutMillis))
                 {
                     throw new DfuException(ErrorCode.ERROR_TIMEOUT_READING_SERIAL);
                 }
